@@ -1,5 +1,4 @@
-/** The settled value a read returns, or the in-flight promise the caller suspends on. */
-type SuspenseEntry = { data: unknown } | Promise<unknown>;
+type SuspenseEntry = { data: unknown } | { error: unknown } | Promise<unknown>;
 
 /**
  * Per-mount store of loader reads, keyed by resolved URL. Holding the settled value (or in-flight
@@ -11,8 +10,8 @@ export class LoaderSuspenseStore {
   private refCounts = new Map<string, number>();
   private reclaimable = new Set<string>();
 
-  get<T = unknown>(key: string): { data: T } | Promise<T> | undefined {
-    return this.entries.get(key) as { data: T } | Promise<T> | undefined;
+  get<T = unknown>(key: string): { data: T } | { error: unknown } | Promise<T> | undefined {
+    return this.entries.get(key) as { data: T } | { error: unknown } | Promise<T> | undefined;
   }
 
   set(key: string, entry: SuspenseEntry) {
@@ -20,9 +19,32 @@ export class LoaderSuspenseStore {
     this.entries.set(key, entry);
   }
 
+  /** Set server-injected data if the key has no entry yet. */
+  seed(key: string, data: unknown) {
+    if (!this.entries.has(key)) {
+      this.set(key, { data });
+    }
+  }
+
   clear(key: string) {
     this.reclaimable.delete(key);
     this.entries.delete(key);
+  }
+
+  /**
+   * Remove a settled error after the current render pass: replayed reads re-throw it, while an
+   * error boundary's retry refetches.
+   */
+  expireError(key: string) {
+    const entry = this.entries.get(key);
+    if (!entry) {
+      return;
+    }
+    queueMicrotask(() => {
+      if (this.entries.get(key) === entry) {
+        this.clear(key);
+      }
+    });
   }
 
   retain(key: string) {
@@ -47,9 +69,9 @@ export class LoaderSuspenseStore {
     });
   }
 
+  // Refcounts survive a reset: mounted readers don't re-run their retain effects afterwards.
   reset() {
     this.entries.clear();
-    this.refCounts.clear();
     this.reclaimable.clear();
   }
 }
