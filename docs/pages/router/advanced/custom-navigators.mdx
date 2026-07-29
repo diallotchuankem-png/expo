@@ -109,12 +109,11 @@ function TabsContent({ emitter }: TabsContentProps) {
 
 Both `unstable_createStandardRouterNavigator` and `unstable_integrateWithRouter` accept an optional `options` object as their third argument:
 
-- **`useOnlyUserDefinedScreens`**: when `true`, only screens you declare with `<Navigator.Screen>` are rendered. Expo Router ignores routes discovered from the filesystem that you did not declare. Defaults to `false`, where Expo Router also renders routes discovered from the filesystem alongside your declared screens.
 - **`createProps`**: derives extra props for `NavigatorContent` from the underlying router state. Use this for router-specific information that is not part of the standard `state` and `actions`.
+- **`processScreens`**: transforms the screens declared as children of your navigator before they are rendered. Use it to support shortcut props on `<Navigator.Screen>` by rewriting them into real screen options.
 
 ```tsx
 export const Tabs = unstable_createStandardRouterNavigator(TabsContent, TabRouter, {
-  useOnlyUserDefinedScreens: true,
   createProps: ({ state, dispatch }) => ({
     activeRouteKey: state.routes[state.index].key,
     preload: (name: string) => dispatch({ type: 'PRELOAD', payload: { name } }),
@@ -139,6 +138,25 @@ function TabsContent({ activeRouteKey, preload }: TabsContentProps) {
 ```
 
 > **info** `createProps` receives the raw Expo Router `state` and `dispatch`. These are internal and may have breaking changes between releases, so prefer the `state` and `actions` passed to `NavigatorContent` when they are enough. If something you need to build your navigator is missing from the standard `state`, `actions`, or `emitter`, [open an issue on GitHub](https://github.com/expo/expo/issues).
+
+`processScreens` receives the screens declared as children of your navigator and returns the screens to render. Their options are typed with your navigator's options, so declare the shortcut prop there. The example below turns a `badge` shortcut prop into a `title` suffix:
+
+```tsx
+type TabsScreenOptions = { title?: string; badge?: number };
+
+export const Tabs = unstable_createStandardRouterNavigator(TabsContent, TabRouter, {
+  processScreens: (screens) =>
+    screens.map((screen) => {
+      if (typeof screen.options === 'function' || screen.options?.badge == null) {
+        return screen;
+      }
+      const { badge, ...options } = screen.options;
+      return { ...screen, options: { ...options, title: `${options.title} (${badge})` } };
+    }),
+});
+```
+
+`processScreens` runs on every render, after `Protected` children are flattened, and receives the declared screens only. Routes Expo Router inferred from the filesystem are not passed to it.
 
 ## Integrate an existing navigator (library authors)
 

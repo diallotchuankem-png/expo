@@ -14,6 +14,7 @@ import type {
   RouteSource,
 } from '../react-navigation/native';
 import type { GoBackAction, NavigateAction } from '../react-navigation/routers/CommonActions';
+import type { ScreenProps } from '../useScreens';
 
 export type StandardNavigatorEventMapBase = Record<
   string,
@@ -80,10 +81,30 @@ type CreatePropsOption<State extends NavigationState, CreateProps extends object
     }
   : { createProps: CreatePropsFn<State, CreateProps> };
 
+// Declared as an intersection rather than extra members on `CreatePropsOption`: that type is a
+// conditional, and excess-property checking would reject `{ createProps, processScreens }` against
+// whichever branch it resolves to.
 export type IntegrateWithRouterOptions<
   State extends NavigationState = NavigationState,
   CreateProps extends object = object,
-> = CreatePropsOption<State, CreateProps>;
+  NavigatorOptions extends object = Record<string, any>,
+> = CreatePropsOption<State, CreateProps> & {
+  /**
+   * Transforms the screens declared as children of the navigator before they are rendered.
+   *
+   * Runs on every render, after `Protected` children are flattened and before the screens are
+   * sorted, and receives the declared screens only — routes Expo Router inferred from the
+   * filesystem are not passed to it. Use it to support shortcut props on `<Navigator.Screen>` by
+   * rewriting them into real screen options.
+   *
+   * @example
+   * ```tsx
+   * processScreens: (screens) =>
+   *   screens.map((screen) => ({ ...screen, options: { ...screen.options, title: screen.name } })),
+   * ```
+   */
+  processScreens?: (screens: ScreenProps<NavigatorOptions>[]) => ScreenProps<NavigatorOptions>[];
+};
 
 /**
  * A standard-navigation descriptor extended with Expo Router route information.

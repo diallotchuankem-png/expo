@@ -382,6 +382,80 @@ describe('unstable_integrateWithRouter / unstable_createStandardRouterNavigator'
   });
 });
 
+describe('processScreens', () => {
+  const optionsByName = () =>
+    Object.fromEntries(
+      lastArgs().state.routes.map(
+        (route) => [route.name, lastArgs().descriptors[route.key]!.options] as const
+      )
+    );
+
+  it('transforms declared screen options before they are rendered', () => {
+    const Prefixed = unstable_createStandardRouterNavigator<
+      TestOptions,
+      TabNavigationState<ParamListBase>,
+      TestEventMap,
+      object,
+      TabRouterOptions
+    >(NavigatorContent, TabRouter, {
+      processScreens: (screens) =>
+        screens.map((screen) => ({
+          ...screen,
+          options: { ...screen.options, title: `processed-${screen.name}` },
+        })),
+    });
+
+    renderRouter({
+      _layout: () => (
+        <Prefixed>
+          <Prefixed.Screen name="index" options={{ title: 'Home' }} />
+          <Prefixed.Screen name="second" />
+        </Prefixed>
+      ),
+      index: () => <View testID="index" />,
+      second: () => <View testID="second" />,
+    });
+
+    expect(optionsByName()).toMatchObject({
+      index: { title: 'processed-index' },
+      second: { title: 'processed-second' },
+    });
+  });
+
+  // The processor runs on the declared screens only, after `Protected` flattening and before
+  // `useSortedScreens`, so filesystem routes that were never declared are not passed to it.
+  it('receives only the declared screens', () => {
+    const names: (string | undefined)[] = [];
+    const Recording = unstable_createStandardRouterNavigator<
+      TestOptions,
+      TabNavigationState<ParamListBase>,
+      TestEventMap,
+      object,
+      TabRouterOptions
+    >(NavigatorContent, TabRouter, {
+      processScreens: (screens) => {
+        names.length = 0;
+        names.push(...screens.map((screen) => screen.name));
+        return screens;
+      },
+    });
+
+    renderRouter({
+      _layout: () => (
+        <Recording>
+          <Recording.Screen name="index" />
+        </Recording>
+      ),
+      index: () => <View testID="index" />,
+      second: () => <View testID="second" />,
+    });
+
+    expect(names).toEqual(['index']);
+    // The undeclared route is still registered, it just never reaches the processor.
+    expect(lastArgs().state.routes.map((route) => route.name)).toContain('second');
+  });
+});
+
 describe('preloaded routes projected through the integration (StackRouter)', () => {
   const StandardStack = unstable_createStandardRouterNavigator<
     TestOptions,

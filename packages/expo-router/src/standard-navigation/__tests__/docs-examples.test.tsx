@@ -93,6 +93,29 @@ function typecheck(_value: unknown) {}
   typecheck(<Tabs preload={() => {}} />);
 }
 
+// "Options" — the `processScreens` example from the guide: a `badge` shortcut prop on
+// `<Tabs.Screen>` is rewritten into a real screen option.
+{
+  type TabsScreenOptions = { title?: string; badge?: number };
+  type TabsContentProps = NavigatorContentProps<TabsScreenOptions>;
+
+  const TabsContent = ({ state, descriptors }: TabsContentProps) =>
+    descriptors[state.routes[state.index]!.key]!.render();
+
+  const Tabs = unstable_createStandardRouterNavigator(TabsContent, TabRouter, {
+    processScreens: (screens) =>
+      screens.map((screen) => {
+        if (typeof screen.options === 'function' || screen.options?.badge == null) {
+          return screen;
+        }
+        const { badge, ...options } = screen.options;
+        return { ...screen, options: { ...options, title: `${options.title} (${badge})` } };
+      }),
+  });
+
+  typecheck(<Tabs />);
+}
+
 // "Library entry points" — a framework-agnostic navigator created directly with
 // `createStandardNavigator`, declaring a real event map (the guide's library-author example).
 {

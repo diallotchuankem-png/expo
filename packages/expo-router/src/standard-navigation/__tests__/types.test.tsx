@@ -209,9 +209,38 @@ unstable_createStandardRouterNavigator(OptionalCreateContent, TabRouter, {
 createSplitNav(SplitContent, TabRouter);
 
 // @ts-expect-error `createProps` is required when `CreateProps` is non-empty.
-createSplitNav(SplitContent, TabRouter, { useOnlyUserDefinedScreens: true });
+createSplitNav(SplitContent, TabRouter, { unknownOption: true });
 
 createPublicNav(PublicContent, TabRouter);
+
+// ---------------------------------------------------------------------------
+// processScreens is always optional and composes with createProps
+// ---------------------------------------------------------------------------
+
+createPublicNav(PublicContent, TabRouter, { processScreens: (screens) => screens });
+
+createSplitNav(SplitContent, TabRouter, {
+  createProps: () => ({ routeNames: [], preload: () => {} }),
+  processScreens: (screens) => screens.map((screen) => ({ ...screen, redirect: false })),
+});
+
+// @ts-expect-error `processScreens` alone does not satisfy a non-empty `CreateProps`.
+createSplitNav(SplitContent, TabRouter, { processScreens: (screens) => screens });
+
+// The screens carry the navigator's own options, so reading an undeclared one is rejected. This is
+// what makes a shortcut-prop processor (like the `href` one in `TabsClient`) type-safe.
+createPublicNav(PublicContent, TabRouter, {
+  processScreens: (screens) =>
+    screens.map((screen) => {
+      if (typeof screen.options !== 'function') {
+        const title: string | undefined = screen.options?.title;
+        // @ts-expect-error `badge` is not an option of this navigator.
+        screen.options?.badge;
+        return { ...screen, options: { title } };
+      }
+      return screen;
+    }),
+});
 
 // ---------------------------------------------------------------------------
 // createProps cannot declare props the content does not declare
