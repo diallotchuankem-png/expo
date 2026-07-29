@@ -18,6 +18,7 @@
 - Apply `pageHeaders` when serving static exports with `expo serve` ([#47781](https://github.com/expo/expo/pull/47781) by [@hassankhan](https://github.com/hassankhan))
 - Create `pageHeaders` rules from loader-declared `Cache-Control` headers for SSG ([#47774](https://github.com/expo/expo/pull/47774) by [@hassankhan](https://github.com/hassankhan))
 - Emit relative asset URLs and `bundleUrl` in manifest responses conditionally ([#47255](https://github.com/expo/expo/pull/47255) by [@kitten](https://github.com/kitten))
+- Resolve `hostUri`, `debuggerHost`, and `/_expo/link` deep links from forwarded request addresses
 
 ### 🐛 Bug fixes
 
