@@ -12,16 +12,8 @@ import {
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
 import { getDefaultSidebarWidth, getLabel, MissingIcon, useFrameSize } from '../../elements';
-import {
-  CommonActions,
-  NavigationProvider,
-  type ParamListBase,
-  type TabNavigationState,
-  useLinkBuilder,
-  useLocale,
-  useTheme,
-} from '../../native';
-import type { BottomTabBarProps, BottomTabDescriptorMap } from '../types';
+import { NavigationProvider, useLinkBuilder, useLocale, useTheme } from '../../native';
+import type { BottomTabBarProps, BottomTabDescriptorMap, BottomTabViewState } from '../types';
 import { BottomTabBarHeightCallbackContext } from '../utils/BottomTabBarHeightCallbackContext';
 import { useIsKeyboardShown } from '../utils/useIsKeyboardShown';
 import { BottomTabItem } from './BottomTabItem';
@@ -39,7 +31,7 @@ const DEFAULT_MAX_TAB_ITEM_WIDTH = 125;
 const useNativeDriver = process.env.EXPO_OS !== 'web';
 
 type Options = {
-  state: TabNavigationState<ParamListBase>;
+  state: BottomTabViewState;
   descriptors: BottomTabDescriptorMap;
   dimensions: { height: number; width: number };
 };
@@ -129,7 +121,7 @@ export const getTabBarHeight = ({
   return TABBAR_HEIGHT_UIKIT + inset;
 };
 
-export function BottomTabBar({ state, navigation, descriptors, insets, style }: Props) {
+export function BottomTabBar({ state, descriptors, emit, navigateToTab, insets, style }: Props) {
   const { colors } = useTheme();
   const { direction } = useLocale();
   const { buildHref } = useLinkBuilder();
@@ -344,22 +336,22 @@ export function BottomTabBar({ state, navigation, descriptors, insets, style }: 
           const { options } = descriptors[route.key]!;
 
           const onPress = () => {
-            const event = navigation.emit({
+            const event = emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
 
             if (!focused && !event.defaultPrevented) {
-              navigation.dispatch({
-                ...CommonActions.navigate(route),
-                target: state.key,
-              });
+              // The params must be passed back: the router rebuilds the route from this action, so
+              // omitting them would reset the tab to its initial params and, with `getId`, would
+              // regenerate its key and remount the whole tab.
+              navigateToTab(route.name, route.params);
             }
           };
 
           const onLongPress = () => {
-            navigation.emit({
+            emit({
               type: 'tabLongPress',
               target: route.key,
             });

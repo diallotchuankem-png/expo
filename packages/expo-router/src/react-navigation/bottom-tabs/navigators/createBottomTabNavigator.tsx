@@ -1,8 +1,12 @@
 'use client';
+import { useCallback } from 'react';
+
 import {
+  CommonActions,
   createNavigatorFactory,
   type NavigatorTypeBagBase,
   type ParamListBase,
+  StackActions,
   type TabActionHelpers,
   type TabNavigationState,
   TabRouter,
@@ -11,6 +15,7 @@ import {
   useNavigationBuilder,
 } from '../../native';
 import type {
+  BottomTabEmit,
   BottomTabNavigationEventMap,
   BottomTabNavigationOptions,
   BottomTabNavigationProp,
@@ -48,9 +53,40 @@ function BottomTabNavigator({
     UNSTABLE_router,
   });
 
+  // The views take discrete props instead of `navigation` and the raw state, so this factory adapts
+  // its `useNavigationBuilder` results to them.
+  const navigateToTab = useCallback(
+    (name: string, params?: object) => {
+      navigation.dispatch({ ...CommonActions.navigate(name, params), target: state.key });
+    },
+    [navigation, state.key]
+  );
+
+  const popNestedStackToTop = useCallback(
+    (routeKey: string) => {
+      const nestedState = state.routes.find((route) => route.key === routeKey)?.state;
+      if (nestedState?.type === 'stack' && nestedState.key) {
+        navigation.dispatch({ ...StackActions.popToTop(), target: nestedState.key });
+      }
+    },
+    [navigation, state.routes]
+  );
+
   return (
     <NavigationContent>
-      <BottomTabView {...rest} state={state} navigation={navigation} descriptors={descriptors} />
+      <BottomTabView
+        {...rest}
+        state={state}
+        descriptors={descriptors}
+        // The cast is what keeps `defaultPrevented` required on `BottomTabEmit`, so a custom tab bar
+        // can rely on it. TypeScript instantiates the generic `emit` with `EventName = any` here,
+        // which collapses the conditional that adds `defaultPrevented` to its return type. The
+        // property is present at runtime for `tabPress`.
+        emit={navigation.emit as BottomTabEmit}
+        navigateToTab={navigateToTab}
+        preloadedRouteKeys={state.preloadedRouteKeys}
+        popNestedStackToTop={popNestedStackToTop}
+      />
     </NavigationContent>
   );
 }

@@ -13,7 +13,6 @@ import type { HeaderOptions, PlatformPressable } from '../elements';
 import type {
   DefaultNavigatorOptions,
   Descriptor,
-  NavigationHelpers,
   NavigationProp,
   ParamListBase,
   RouteProp,
@@ -48,11 +47,42 @@ export type BottomTabNavigationEventMap = {
 
 export type LabelPosition = 'beside-icon' | 'below-icon';
 
-export type BottomTabNavigationHelpers = NavigationHelpers<
-  ParamListBase,
-  BottomTabNavigationEventMap
-> &
-  TabActionHelpers<ParamListBase>;
+/**
+ * A tab as the views see it. This is only the part of the router's route that the views read —
+ * notably not `state`, so a custom tab bar cannot reach into a tab's nested navigator.
+ */
+export type BottomTabViewRoute = {
+  key: string;
+  name: string;
+  params?: object;
+};
+
+/**
+ * The navigator state consumed by `BottomTabView` and the tab bar. Everything else the views need
+ * is passed as a discrete prop, so they stay independent of the router that produced the state.
+ */
+export type BottomTabViewState = {
+  index: number;
+  routes: BottomTabViewRoute[];
+};
+
+/**
+ * Emits a navigator-level tab event.
+ *
+ * `tabPress` returns the emitted event so the tab bar can skip navigation when a listener called
+ * `preventDefault()`.
+ */
+export type BottomTabEmit = {
+  (event: { type: 'tabPress'; target?: string; data?: object; canPreventDefault: true }): {
+    readonly type: string;
+    readonly defaultPrevented: boolean;
+  };
+  (event: {
+    type: 'tabLongPress' | 'transitionStart' | 'transitionEnd';
+    target?: string;
+    data?: object;
+  }): unknown;
+};
 
 export type BottomTabNavigationProp<
   ParamList extends ParamListBase,
@@ -409,9 +439,13 @@ export type BottomTabHeaderProps = {
 };
 
 export type BottomTabBarProps = {
-  state: TabNavigationState<ParamListBase>;
+  state: BottomTabViewState;
   descriptors: BottomTabDescriptorMap;
-  navigation: NavigationHelpers<ParamListBase, BottomTabNavigationEventMap>;
+  emit: BottomTabEmit;
+  /**
+   * Switches to the tab with the given route name. Pass the tab's current params to keep them.
+   */
+  navigateToTab: (name: string, params?: object) => void;
   insets: EdgeInsets;
 };
 
