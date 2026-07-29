@@ -8,11 +8,6 @@ import * as TransitionSpecs from './TransitionConfigs/TransitionSpecs';
 export { SceneStyleInterpolators, TransitionPresets, TransitionSpecs };
 
 /**
- * Navigators
- */
-export { createBottomTabNavigator } from './navigators/createBottomTabNavigator';
-
-/**
  * Views
  */
 export { BottomTabBar } from './views/BottomTabBar';
@@ -28,14 +23,16 @@ export { useBottomTabBarHeight } from './utils/useBottomTabBarHeight';
 /**
  * Types
  */
+// `createStandardBottomTabNavigator` is intentionally omitted — use the `Tabs` layout instead.
 export type {
   BottomTabBarButtonProps,
   BottomTabBarProps,
+  BottomTabEmit,
   BottomTabHeaderProps,
   BottomTabNavigationEventMap,
   BottomTabNavigationOptions,
   BottomTabNavigationProp,
-  BottomTabNavigatorProps,
   BottomTabOptionsArgs,
   BottomTabScreenProps,
+  BottomTabViewState,
 } from './types';

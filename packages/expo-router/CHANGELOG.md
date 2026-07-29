@@ -7,6 +7,7 @@
 - Add `redirectTo` to protected routes and render guarded screens as redirects instead of removing them from navigators. ([#47744](https://github.com/expo/expo/pull/47744) by [@Ubax](https://github.com/Ubax))
 - Migrate the `Drawer` navigator to the `standard-navigation` integration. ([#47839](https://github.com/expo/expo/pull/47839) by [@Ubax](https://github.com/Ubax))
 - Remove `StackNavigationState.preloadedRoutes` property and append preloaded routes to `state.routes` ([#47961](https://github.com/expo/expo/pull/47961) by [@Ubax](https://github.com/Ubax))
+- Migrate the JS `Tabs` navigator to the `standard-navigation` integration. `createBottomTabNavigator` is no longer exported from `expo-router/js-tabs` — use the `Tabs` layout instead. A custom `tabBar`, and `BottomTabView` when rendered directly, now receive `emit` and `navigateToTab` instead of `navigation`, plus `preloadedRouteKeys` and `popNestedStackToTop`. Their `state` carries `index` and `routes` only, and each route carries `key`, `name`, and `params` only — a tab's nested navigator state is no longer reachable through `route.state`. To dispatch anything else, use `descriptors[route.key].navigation`. The `navigation` argument of `screenListeners` is typed as `any`, as it already is for `Stack`, `Drawer`, and `NativeTabs`. ([#48195](https://github.com/expo/expo/pull/48195) by [@Ubax](https://github.com/Ubax))
 
 ### 🎉 New features
 

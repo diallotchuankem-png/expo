@@ -1,110 +1,86 @@
 'use client';
-import { useCallback } from 'react';
+// TODO: Rename this file to `createStandardBottomTabNavigator.tsx` in a follow-up.
+import { createStandardNavigator } from 'standard-navigation';
 
-import {
-  CommonActions,
-  createNavigatorFactory,
-  type NavigatorTypeBagBase,
-  type ParamListBase,
-  StackActions,
-  type TabActionHelpers,
-  type TabNavigationState,
-  TabRouter,
-  type TabRouterOptions,
-  type TypedNavigator,
-  useNavigationBuilder,
-} from '../../native';
+import type { NavigatorContentProps } from '../../../standard-navigation/types';
+import type { Href } from '../../../types';
 import type {
+  BottomTabDescriptorMap,
   BottomTabEmit,
+  BottomTabNavigationConfig,
   BottomTabNavigationEventMap,
   BottomTabNavigationOptions,
-  BottomTabNavigationProp,
-  BottomTabNavigatorProps,
 } from '../types';
 import { BottomTabView } from '../views/BottomTabView';
 
-function BottomTabNavigator({
-  id,
-  initialRouteName,
-  backBehavior,
-  children,
-  layout,
-  screenListeners,
-  screenOptions,
-  screenLayout,
-  UNSTABLE_router,
-  ...rest
-}: BottomTabNavigatorProps) {
-  const { state, descriptors, navigation, NavigationContent } = useNavigationBuilder<
-    TabNavigationState<ParamListBase>,
-    TabRouterOptions,
-    TabActionHelpers<ParamListBase>,
-    BottomTabNavigationOptions,
-    BottomTabNavigationEventMap
-  >(TabRouter, {
-    id,
-    initialRouteName,
-    backBehavior,
-    children,
-    layout,
-    screenListeners,
-    screenOptions,
-    screenLayout,
-    UNSTABLE_router,
-  });
+/**
+ * Screen options of the `Tabs` layout: the bottom tab options plus the `href` shortcut, which the
+ * layout rewrites into a tab bar button before the screens are rendered.
+ */
+export type TabsScreenOptions = BottomTabNavigationOptions & { href?: Href | null };
 
-  // The views take discrete props instead of `navigation` and the raw state, so this factory adapts
-  // its `useNavigationBuilder` results to them.
-  const navigateToTab = useCallback(
-    (name: string, params?: object) => {
-      navigation.dispatch({ ...CommonActions.navigate(name, params), target: state.key });
-    },
-    [navigation, state.key]
-  );
+/**
+ * The standard contract requires `canPreventDefault` on every event, while the react-navigation
+ * event map declares it on `tabPress` only.
+ */
+export type StandardBottomTabNavigationEventMap = {
+  [Event in keyof BottomTabNavigationEventMap]: BottomTabNavigationEventMap[Event] & {
+    canPreventDefault: Event extends 'tabPress' ? true : false;
+  };
+};
 
-  const popNestedStackToTop = useCallback(
-    (routeKey: string) => {
-      const nestedState = state.routes.find((route) => route.key === routeKey)?.state;
-      if (nestedState?.type === 'stack' && nestedState.key) {
-        navigation.dispatch({ ...StackActions.popToTop(), target: nestedState.key });
-      }
-    },
-    [navigation, state.routes]
-  );
+/**
+ * Router-specific values the views need that the standard `state` and `actions` do not carry.
+ */
+export interface BottomTabNavigatorCreateProps {
+  preloadedRouteKeys: string[];
+  popNestedStackToTop: (routeKey: string) => void;
+}
 
+export type BottomTabNavigatorContentProps = BottomTabNavigationConfig &
+  BottomTabNavigatorCreateProps;
+
+type ContentArgs = NavigatorContentProps<
+  TabsScreenOptions,
+  StandardBottomTabNavigationEventMap,
+  BottomTabNavigationConfig,
+  BottomTabNavigatorCreateProps
+>;
+
+function BottomTabNavigatorContent({
+  state,
+  descriptors,
+  actions,
+  emitter,
+  tabBar,
+  safeAreaInsets,
+  detachInactiveScreens,
+  preloadedRouteKeys,
+  popNestedStackToTop,
+}: ContentArgs) {
   return (
-    <NavigationContent>
-      <BottomTabView
-        {...rest}
-        state={state}
-        descriptors={descriptors}
-        // The cast is what keeps `defaultPrevented` required on `BottomTabEmit`, so a custom tab bar
-        // can rely on it. TypeScript instantiates the generic `emit` with `EventName = any` here,
-        // which collapses the conditional that adds `defaultPrevented` to its return type. The
-        // property is present at runtime for `tabPress`.
-        emit={navigation.emit as BottomTabEmit}
-        navigateToTab={navigateToTab}
-        preloadedRouteKeys={state.preloadedRouteKeys}
-        popNestedStackToTop={popNestedStackToTop}
-      />
-    </NavigationContent>
+    <BottomTabView
+      state={state}
+      // TODO(@ubax): SDK-58: Try to remove the casting from here to ensure type safety
+      // Integration supplies full descriptors, including preload placeholders; standard types omit route/navigation.
+      descriptors={descriptors as unknown as BottomTabDescriptorMap}
+      // The cast is what keeps `defaultPrevented` required on `BottomTabEmit`, so a custom tab bar
+      // can rely on it. TypeScript instantiates the generic `emit` with `EventName = any` here,
+      // which collapses the conditional that adds `defaultPrevented` to its return type. The
+      // property is present at runtime for `tabPress` — `useStandardEmitter` defines it as a getter.
+      emit={emitter.emit as BottomTabEmit}
+      navigateToTab={actions.navigate}
+      preloadedRouteKeys={preloadedRouteKeys}
+      popNestedStackToTop={popNestedStackToTop}
+      tabBar={tabBar}
+      safeAreaInsets={safeAreaInsets}
+      detachInactiveScreens={detachInactiveScreens}
+    />
   );
 }
 
-export function createBottomTabNavigator<
-  const ParamList extends ParamListBase,
-  const NavigatorID extends string | undefined = string | undefined,
-  const TypeBag extends NavigatorTypeBagBase = {
-    ParamList: ParamList;
-    NavigatorID: NavigatorID;
-    State: TabNavigationState<ParamList>;
-    ScreenOptions: BottomTabNavigationOptions;
-    EventMap: BottomTabNavigationEventMap;
-    NavigationList: {
-      [RouteName in keyof ParamList]: BottomTabNavigationProp<ParamList, RouteName, NavigatorID>;
-    };
-    Navigator: typeof BottomTabNavigator;
-  },
->(): TypedNavigator<TypeBag> {
-  return createNavigatorFactory(BottomTabNavigator)();
-}
+export const createStandardBottomTabNavigator = createStandardNavigator<
+  TabsScreenOptions,
+  StandardBottomTabNavigationEventMap,
+  BottomTabNavigatorContentProps
+>(BottomTabNavigatorContent);
