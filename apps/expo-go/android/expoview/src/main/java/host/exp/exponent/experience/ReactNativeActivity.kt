@@ -42,6 +42,7 @@ import host.exp.exponent.factories.ReactHostFactory
 import host.exp.exponent.kernel.ExperienceKey
 import host.exp.exponent.kernel.ExponentError
 import host.exp.exponent.kernel.ExponentErrorMessage
+import host.exp.exponent.kernel.ExponentUrls
 import host.exp.exponent.kernel.KernelConstants
 import host.exp.exponent.kernel.KernelConstants.AddedExperienceEventEvent
 import host.exp.exponent.kernel.KernelProvider
@@ -381,8 +382,8 @@ abstract class ReactNativeActivity :
     )
 
     if (delegate.isDebugModeEnabled) {
-      val debuggerHost = manifest!!.getDebuggerHost()
-      Exponent.enableDeveloperSupport(debuggerHost, mainModuleName!!, nativeHost)
+      val bundleUrl = ExponentUrls.bundleUrlFromManifest(manifest!!, manifestUrl!!)
+      Exponent.enableDeveloperSupport(bundleUrl, mainModuleName!!, nativeHost)
       DefaultDevLoadingViewImplementation.setDevLoadingEnabled(true)
     } else {
       waitForReactAndFinishLoading()

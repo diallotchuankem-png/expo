@@ -283,9 +283,17 @@ class Exponent private constructor(val context: Context, val application: Applic
     fun onFailure(errorMessage: String)
   }
 
+  /**
+   * Check that the development server that serves [bundleUrl] is running.
+   *
+   * The status URL is built from the bundle URL, which is the address this device reached, rather
+   * than from the manifest's `debuggerHost`, which is the address the development server believes it
+   * has. The two differ when the server is reached through a proxy or a tunnel, and only the former
+   * keeps its scheme and port.
+   */
   fun testPackagerStatus(
     isDebug: Boolean,
-    mManifest: Manifest,
+    bundleUrl: String,
     callback: PackagerStatusCallback
   ) {
     if (!isDebug) {
@@ -293,13 +301,19 @@ class Exponent private constructor(val context: Context, val application: Applic
       return
     }
 
-    val debuggerHost = mManifest.getDebuggerHost()
+    val statusUrl = Uri.parse(bundleUrl)
+      .buildUpon()
+      .path("status")
+      .clearQuery()
+      .fragment(null)
+      .build()
+      .toString()
     exponentNetwork.noCacheClient.newCall(
-      Request.Builder().url("http://$debuggerHost/status").build()
+      Request.Builder().url(statusUrl).build()
     ).enqueue(object : Callback {
       override fun onFailure(call: Call, e: IOException) {
         EXL.d(TAG, e.toString())
-        callback.onFailure("Packager is not running at http://$debuggerHost")
+        callback.onFailure("Packager is not running at $statusUrl")
       }
 
       @Throws(IOException::class)
@@ -308,7 +322,7 @@ class Exponent private constructor(val context: Context, val application: Applic
         if (responseString.contains(PACKAGER_RUNNING)) {
           runOnUiThread { callback.onSuccess() }
         } else {
-          callback.onFailure("Packager is not running at http://$debuggerHost")
+          callback.onFailure("Packager is not running at $statusUrl")
         }
       }
     })
@@ -349,10 +363,13 @@ class Exponent private constructor(val context: Context, val application: Applic
       }
       val uri = Uri.parse(url)
       val port = uri.port
-      return if (port == -1) {
-        80
-      } else {
+      return if (port != -1) {
         port
+      } else if (uri.scheme == "https") {
+        // A development server behind a TLS-terminating proxy is usually reached without a port.
+        443
+      } else {
+        80
       }
     }
 
@@ -365,24 +382,36 @@ class Exponent private constructor(val context: Context, val application: Applic
       return uri.host
     }
 
+    /**
+     * Point React Native's packager connections at the development server that serves [bundleUrl].
+     *
+     * The bundle URL is the address this device reached, so its host and port are what the reload,
+     * HMR, and inspector connections must use. The manifest's `debuggerHost` holds the address the
+     * development server believes it has, which is unreachable through a proxy or a tunnel and can
+     * name the wrong port.
+     *
+     * NOTE(@kitten): [AndroidInfoHelpers] carries only a host and a port, so React Native still
+     * builds `http://` URLs from them. An HTTPS development server needs a `DevServerHelper` that
+     * takes the bundle URL verbatim, as `expo-dev-launcher` installs for development builds.
+     */
     @JvmStatic fun enableDeveloperSupport(
-      debuggerHost: String,
+      bundleUrl: String,
       mainModuleName: String,
       host: ExpoNativeHost
     ) {
-      if (debuggerHost.isEmpty() || mainModuleName.isEmpty()) {
+      if (bundleUrl.isEmpty() || mainModuleName.isEmpty()) {
         return
       }
 
       try {
-        val debuggerHostHostname = getHostname(debuggerHost)
-        val debuggerHostPort = getPort(debuggerHost)
+        val devServerHostname = getHostname(bundleUrl)
+        val devServerPort = getPort(bundleUrl)
 
-        AndroidInfoHelpers.DEVICE_LOCALHOST = debuggerHostHostname ?: ""
-        AndroidInfoHelpers.GENYMOTION_LOCALHOST = debuggerHostHostname ?: ""
-        AndroidInfoHelpers.EMULATOR_LOCALHOST = debuggerHostHostname ?: ""
-        AndroidInfoHelpers.setDevServerPort(debuggerHostPort)
-        AndroidInfoHelpers.setInspectorProxyPort(debuggerHostPort)
+        AndroidInfoHelpers.DEVICE_LOCALHOST = devServerHostname ?: ""
+        AndroidInfoHelpers.GENYMOTION_LOCALHOST = devServerHostname ?: ""
+        AndroidInfoHelpers.EMULATOR_LOCALHOST = devServerHostname ?: ""
+        AndroidInfoHelpers.setDevServerPort(devServerPort)
+        AndroidInfoHelpers.setInspectorProxyPort(devServerPort)
 
         host.devSupportEnabled = true
         host.mainModuleName = mainModuleName

@@ -84,9 +84,7 @@ class InternalHeadlessAppLoader(private val context: Context) :
         override fun onManifestCompleted(manifest: Manifest) {
           Exponent.instance.runOnUiThread {
             try {
-              val bundleUrl = ExponentUrls.toHttp(
-                ExponentUrls.resolveManifestUrl(manifest.getBundleURL(), manifestUrl!!)
-              )
+              val bundleUrl = ExponentUrls.bundleUrlFromManifest(manifest, manifestUrl!!)
               activityIdToBundleUrl.put(activityId, bundleUrl)
               setManifest(manifestUrl!!, manifest, bundleUrl)
             } catch (e: JSONException) {
@@ -199,7 +197,7 @@ class InternalHeadlessAppLoader(private val context: Context) :
   private fun startReactInstance() {
     Exponent.instance.testPackagerStatus(
       isDebugModeEnabled,
-      manifest!!,
+      ExponentUrls.bundleUrlFromManifest(manifest!!, manifestUrl!!),
       object : Exponent.PackagerStatusCallback {
         override fun onSuccess() {
           reactHost = startReactInstance(
@@ -242,9 +240,9 @@ class InternalHeadlessAppLoader(private val context: Context) :
     )
 
     if (delegate.isDebugModeEnabled) {
-      val debuggerHost = manifest!!.getDebuggerHost()
+      val bundleUrl = ExponentUrls.bundleUrlFromManifest(manifest!!, manifestUrl!!)
       val mainModuleName = manifest!!.getMainModuleName()
-      Exponent.enableDeveloperSupport(debuggerHost, mainModuleName, host)
+      Exponent.enableDeveloperSupport(bundleUrl, mainModuleName, host)
     }
 
     val reactHost = ReactHostFactory.getDefaultReactHost(

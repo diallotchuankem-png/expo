@@ -242,8 +242,10 @@ class Kernel : KernelInterface() {
           if (!KernelConfig.FORCE_NO_KERNEL_DEBUG_MODE &&
             manifest.isDevelopmentMode()
           ) {
+            // The kernel manifest is embedded in the app, so its bundle URL is already absolute and
+            // there's no manifest URL to resolve it against.
             Exponent.enableDeveloperSupport(
-              manifest.getDebuggerHost(),
+              toHttp(manifest.getBundleURL()),
               manifest.getMainModuleName(),
               nativeHost
             )
@@ -696,7 +698,7 @@ class Kernel : KernelInterface() {
     manifest: Manifest,
     existingTask: AppTask?
   ) {
-    val bundleUrl = toHttp(ExponentUrls.resolveManifestUrl(manifest.getBundleURL(), manifestUrl))
+    val bundleUrl = ExponentUrls.bundleUrlFromManifest(manifest, manifestUrl)
     val task = getExperienceActivityTask(manifestUrl)
     task.bundleUrl = bundleUrl
     if (existingTask == null) {
