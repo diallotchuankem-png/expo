@@ -4761,6 +4761,9 @@ importers:
 
   packages/expo-linking:
     dependencies:
+      expo:
+        specifier: '*'
+        version: link:../expo
       expo-constants:
         specifier: workspace:~56.0.16
         version: link:../expo-constants
