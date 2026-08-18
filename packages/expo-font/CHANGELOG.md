@@ -4,12 +4,12 @@
 
 ### 🛠 Breaking changes
 
-- [web] Removed `Server.resetServerContext()`. Server-side font state is now scoped per-render via `AsyncLocalStorage`. ([#46669](https://github.com/expo/expo/pull/46669) by [@hassankhan](https://github.com/hassankhan))
+- [ios] `getLoadedFonts()` no longer reports the PostScript name read out of a font loaded with `loadAsync`, only the name (the alias) it was loaded under. ([#48432](https://github.com/expo/expo/pull/48432) by [@vonovak](https://github.com/vonovak))
 
 ### 🎉 New features
 
-- [web] Added `Server.withServerContext(callback)` which scopes server-side font loads per render. ([#46669](https://github.com/expo/expo/pull/46669) by [@hassankhan](https://github.com/hassankhan))
 - [android] Support variable fonts in the config plugin ([#48129](https://github.com/expo/expo/pull/48129) by [@L65FREAD](https://github.com/L65FREAD))
+- [ios] Apply `fontWeight` to variable fonts loaded with `useFonts`. ([#48432](https://github.com/expo/expo/pull/48432) by [@vonovak](https://github.com/vonovak))
 
 ### 🐛 Bug fixes
 
@@ -18,7 +18,29 @@
 
 ### 💡 Others
 
+## 57.0.1 - 2026-07-15
+
+_This version does not introduce any user-facing changes._
+
+## 57.0.0 - 2026-06-25
+
+### 🛠 Breaking changes
+
+- [web] Removed `Server.resetServerContext()`. Server-side font state is now scoped per-render via `AsyncLocalStorage`. ([#46669](https://github.com/expo/expo/pull/46669) by [@hassankhan](https://github.com/hassankhan))
+
+### 🎉 New features
+
+- [web] Added `Server.withServerContext(callback)` which scopes server-side font loads per render. ([#46669](https://github.com/expo/expo/pull/46669) by [@hassankhan](https://github.com/hassankhan))
+
+## 56.0.7 - 2026-06-15
+
+### 💡 Others
+
 - Resolve package-style font paths. ([#46784](https://github.com/expo/expo/pull/46784) by [@maxlapides](https://github.com/maxlapides))
+
+## 56.0.6 - 2026-06-10
+
+_This version does not introduce any user-facing changes._
 
 ## 56.0.5 — 2026-05-19
 
