@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketPulse Pro — Analyse & Trading Multi-Brokers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#070b14;--panel:#0d1424;--panel2:#121d32;--border:rgba(148,163,184,.14);
+      --text:#e8eefb;--muted:#8c9ab2;--cyan:#38bdf8;--blue:#6366f1;
+      --green:#10b981;--red:#f43f5e;--amber:#f59e0b;--purple:#a855f7;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"Plus Jakarta Sans",sans-serif;overflow-x:hidden}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.34;background-image:linear-gradient(rgba(148,163,184,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.045) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 75%)}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .mono{font-family:"DM Mono",monospace}
+    .ticker{height:37px;display:flex;align-items:center;overflow:hidden;background:rgba(4,7,13,.93);border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;z-index:30}
+    .live{height:100%;display:flex;align-items:center;gap:7px;padding:0 15px;background:#0b1120;color:var(--cyan);font:700 10px "DM Mono";letter-spacing:.08em;border-right:1px solid var(--border);white-space:nowrap}
+    .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 12px var(--green);animation:pulse 1.5s infinite}
+    .ticker-wrap{overflow:hidden;width:100%}.ticker-track{display:flex;width:max-content;gap:31px;padding-left:22px;animation:slide 38s linear infinite;white-space:nowrap;font:11px "DM Mono";color:#a8b4c7}.ticker-track:hover{animation-play-state:paused}.tick strong{color:#dbe7f8;font-weight:500}.up{color:var(--green)}.down{color:var(--red)}
+    .app{display:flex;min-height:calc(100vh - 37px)}
+    .sidebar{width:258px;flex:none;padding:21px 14px;background:rgba(9,14,26,.91);backdrop-filter:blur(18px);border-right:1px solid rgba(255,255,255,.055);display:flex;flex-direction:column;justify-content:space-between;z-index:10}
+    .brand{display:flex;align-items:center;gap:11px;padding:0 8px 28px}.brand-mark{width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));padding:2px;box-shadow:0 9px 24px rgba(56,189,248,.2)}.brand-mark div{height:100%;display:grid;place-items:center;border-radius:11px;background:#080d18;color:var(--cyan)}
+    .brand-name{font-size:14px;font-weight:800;letter-spacing:-.04em}.pro{margin-left:3px;padding:2px 5px;border-radius:4px;background:rgba(56,189,248,.13);border:1px solid rgba(56,189,248,.25);color:var(--cyan);font:9px "DM Mono";vertical-align:middle}.brand small{display:block;margin-top:3px;color:#66758e;font:10px "DM Mono"}
+    .section-label{padding:0 11px;margin:0 0 8px;color:#64748b;font:700 10px "DM Mono";letter-spacing:.1em;text-transform:uppercase}.nav{display:flex;flex-direction:column;gap:4px;margin-bottom:26px}.nav button{border:1px solid transparent;background:transparent;color:#93a1b7;border-radius:11px;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:12px;font-weight:600;transition:.2s}.nav button:hover{background:rgba(255,255,255,.04);color:white}.nav button.active{background:linear-gradient(90deg,rgba(56,189,248,.14),rgba(99,102,241,.09));border-color:rgba(56,189,248,.18);color:white}.nav i{width:16px;height:16px;color:#7c8ba3}.nav .active i{color:var(--cyan)}
+    .broker{margin:8px;padding:13px;border:1px solid var(--border);background:linear-gradient(145deg,rgba(19,29,51,.8),rgba(13,20,36,.5));border-radius:14px}.broker-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700}.connected{display:flex;gap:5px;align-items:center;color:var(--green);font:10px "DM Mono"}.connected span{width:6px;height:6px;background:var(--green);border-radius:99px}.broker p{margin:10px 0 0;color:#8190a8;font:10px "DM Mono"}.broker button{width:100%;margin-top:11px;border:1px solid rgba(56,189,248,.28);border-radius:8px;padding:8px;background:rgba(56,189,248,.08);color:var(--cyan);font-size:10px;font-weight:700}
+    .main{width:calc(100% - 258px);padding:28px;max-width:1700px;margin:0 auto}.topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:23px}.eyebrow{color:var(--cyan);font:700 10px "DM Mono";letter-spacing:.1em;text-transform:uppercase}.topbar h1{margin:7px 0 0;font-size:25px;letter-spacing:-.05em}.topbar h1 span{color:#7787a1;font-weight:500}.actions{display:flex;gap:9px;align-items:center}.outline-btn,.primary-btn{border-radius:10px;padding:10px 13px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:7px}.outline-btn{background:rgba(255,255,255,.03);border:1px solid var(--border);color:#bac7d9}.primary-btn{border:1px solid rgba(56,189,248,.4);background:linear-gradient(135deg,#22b4ed,#5665e9);color:#06101c;box-shadow:0 6px 18px rgba(56,189,248,.2)}
+    .market-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.metric{position:relative;overflow:hidden;padding:15px 16px;border:1px solid var(--border);border-radius:14px;background:linear-gradient(135deg,rgba(19,29,51,.78),rgba(10,16,29,.72));transition:.2s}.metric:hover{transform:translateY(-2px);border-color:rgba(56,189,248,.28)}.metric label{display:block;color:#8a9ab1;font:10px "DM Mono"}.metric strong{display:block;margin:7px 0 4px;font:700 17px "DM Mono";letter-spacing:-.06em}.metric small{font:10px "DM Mono"}.metric i{position:absolute;right:14px;top:16px;width:17px;color:#70809a}
+    .grid-main{display:grid;grid-template-columns:minmax(0,1.48fr) minmax(310px,.84fr);gap:18px}.card{border:1px solid var(--border);border-radius:16px;background:linear-gradient(145deg,rgba(16,25,44,.88),rgba(9,14,26,.83));box-shadow:0 18px 50px rgba(0,0,0,.14)}.chart-card{padding:19px 19px 12px}.card-title{display:flex;align-items:center;justify-content:space-between;gap:10px}.instrument{display:flex;align-items:center;gap:10px}.instrument-icon{width:34px;height:34px;border-radius:10px;background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.25);display:grid;place-items:center;color:#c084fc}.instrument h2{margin:0;font-size:14px}.instrument p{margin:3px 0 0;color:#8090a8;font:10px "DM Mono"}.price{font:700 19px "DM Mono";letter-spacing:-.07em}.timeframes{display:flex;gap:4px;margin:19px 0 9px}.tf{padding:5px 8px;background:transparent;border:1px solid transparent;border-radius:7px;color:#7f8da4;font:10px "DM Mono"}.tf.active,.tf:hover{color:#06101b;background:var(--cyan);border-color:var(--cyan);font-weight:700}.chart-holder{height:278px;position:relative}
+    .signal-card{padding:18px}.signal-status{padding:13px;margin-top:15px;border-radius:12px;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.24);display:flex;align-items:center;gap:11px}.signal-status i{color:var(--green)}.signal-status b{display:block;font-size:12px}.signal-status small{display:block;margin-top:3px;color:#91a2b6;font:10px "DM Mono"}.confidence{margin:17px 0}.conf-row{display:flex;justify-content:space-between;color:#93a1b5;font:10px "DM Mono";margin-bottom:7px}.conf-row strong{color:var(--green)}.progress{height:6px;border-radius:99px;background:#202b3e;overflow:hidden}.progress span{display:block;width:78%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#18b98b,var(--cyan));box-shadow:0 0 12px rgba(56,189,248,.5)}.signals{display:grid;gap:8px}.signal-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px}.signal-item:last-child{border:0}.signal-item span{color:#8b9ab0}.signal-item b{font:500 10px "DM Mono"}.positive{color:var(--green)}.neutral{color:var(--amber)}
+    .bottom-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px;margin-top:18px}.algo-card{overflow:hidden}.algo-header{padding:17px 19px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:linear-gradient(90deg,rgba(56,189,248,.07),rgba(99,102,241,.04),transparent)}.algo-title{display:flex;gap:11px;align-items:center}.algo-icon{display:grid;place-items:center;width:35px;height:35px;border-radius:11px;background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(99,102,241,.2));color:var(--cyan)}.algo-title h2{font-size:14px;margin:0}.algo-title p{font:10px "DM Mono";margin:4px 0 0;color:#8190a7}.switch-row{display:flex;align-items:center;gap:11px;font:11px "DM Mono";color:#8c9ab1}.switch-row b{color:var(--amber)}.switch{position:relative;width:45px;height:25px;border-radius:20px;background:#29354a;border:1px solid #3b4a63;transition:.25s}.switch span{position:absolute;width:17px;height:17px;top:3px;left:4px;border-radius:50%;background:#8d9bb0;transition:.25s}.switch.enabled{background:rgba(16,185,129,.28);border-color:rgba(16,185,129,.5)}.switch.enabled span{left:22px;background:var(--green);box-shadow:0 0 10px var(--green)}.algo-body{padding:17px 19px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.algo-stat{padding:12px;border:1px solid rgba(255,255,255,.06);border-radius:11px;background:rgba(5,10,19,.34)}.algo-stat label{color:#8190a8;font:10px "DM Mono"}.algo-stat strong{display:block;margin-top:7px;font:700 15px "DM Mono";letter-spacing:-.05em}
+    .indicators{padding:18px}.indicators h2{font-size:14px;margin:0 0 14px}.indicator-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid rgba(255,255,255,.06)}.indicator-row:first-of-type{border-top:0}.ind-left{display:flex;align-items:center;gap:9px}.indicator-dot{width:8px;height:8px;border-radius:50%}.indicator-row b{font-size:11px}.indicator-row small{display:block;color:#8493a9;font:9px "DM Mono";margin-top:3px}.tag{padding:4px 6px;border-radius:5px;font:9px "DM Mono";font-weight:600}.bull{background:rgba(16,185,129,.13);color:var(--green)}.warn{background:rgba(245,158,11,.13);color:var(--amber)}
+    .modal-layer{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(2,5,11,.72);backdrop-filter:blur(8px)}.modal-layer.show{display:flex}.modal{width:min(620px,100%);max-height:90vh;overflow:auto;border:1px solid rgba(56,189,248,.2);border-radius:20px;background:linear-gradient(145deg,#121d32,#090f1c);box-shadow:0 25px 80px rgba(0,0,0,.6);animation:pop .25s ease}.modal-head{padding:20px 21px 16px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border)}.modal-head h2{margin:0;font-size:17px;letter-spacing:-.04em}.modal-head p{margin:6px 0 0;color:#8d9cb1;font-size:11px;line-height:1.5}.close{width:32px;height:32px;border:1px solid var(--border);border-radius:9px;background:#10192a;color:#b5c2d5;display:grid;place-items:center}.modal-body{padding:20px 21px}.security{display:flex;gap:10px;padding:11px 12px;margin-bottom:18px;border-radius:10px;background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.14);color:#9db2c8;font-size:10px;line-height:1.5}.security i{width:16px;flex:none;color:var(--cyan)}.broker-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:17px}.broker-option{padding:10px 5px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.025);color:#9caabd;font:600 10px "DM Mono";text-align:center;transition:.2s}.broker-option:hover,.broker-option.selected{border-color:var(--cyan);color:var(--cyan);background:rgba(56,189,248,.09)}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field.full{grid-column:1/-1}.field label{display:block;margin:0 0 7px;color:#a5b2c5;font:600 10px "DM Mono"}.field input,.field select{width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:9px;outline:0;background:#0a1120;color:#e5edf9;font-size:11px}.field input:focus,.field select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(56,189,248,.09)}.modal-foot{display:flex;justify-content:flex-end;gap:9px;padding:16px 21px;border-top:1px solid var(--border)}
+    .toast{position:fixed;right:22px;bottom:22px;z-index:200;display:flex;align-items:center;gap:9px;padding:12px 15px;border:1px solid rgba(16,185,129,.3);border-radius:11px;background:#10231f;color:#c7f6e5;font-size:11px;box-shadow:0 12px 30px rgba(0,0,0,.35);transform:translateY(85px);opacity:0;transition:.3s}.toast.show{transform:translateY(0);opacity:1}.toast i{color:var(--green);width:17px}
+    @keyframes pulse{50%{opacity:.4;transform:scale(.72)}}@keyframes slide{to{transform:translateX(-35%)}}@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+    @media(max-width:1050px){.sidebar{width:76px;padding:18px 9px}.brand{padding:0 8px 26px}.brand-text,.section-label,.nav span,.broker{display:none}.nav button{justify-content:center;padding:11px}.main{width:calc(100% - 76px)}.bottom-grid{grid-template-columns:1fr}}
+    @media(max-width:760px){.ticker-track{gap:19px}.sidebar{display:none}.main{width:100%;padding:18px}.topbar{margin-bottom:18px}.topbar h1{font-size:20px}.actions .outline-btn{display:none}.market-strip{grid-template-columns:1fr 1fr}.grid-main{grid-template-columns:1fr}.chart-holder{height:240px}.bottom-grid{grid-template-columns:1fr}.algo-body{grid-template-columns:1fr 1fr}.broker-options{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:460px){.main{padding:14px}.topbar{align-items:center}.topbar h1{font-size:18px}.topbar h1 span{display:none}.primary-btn{padding:10px}.primary-btn span{display:none}.market-strip{gap:8px}.metric{padding:12px}.metric strong{font-size:14px}.metric i{display:none}.price{font-size:15px}.chart-card{padding:14px}.signal-card{padding:15px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.modal-layer{padding:10px}.modal-head,.modal-body{padding-left:16px;padding-right:16px}.modal-foot{padding:14px 16px}.algo-body{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="ticker">
+    <div class="live"><span class="pulse"></span>MARCHÉS EN DIRECT</div>
+    <div class="ticker-wrap"><div class="ticker-track">
+      <span class="tick"><strong>EUR/USD</strong> 1.08426 <b class="up">+0.18%</b></span>
+      <span class="tick"><strong>GBP/USD</strong> 1.27418 <b class="up">+0.09%</b></span>
+      <span class="tick"><strong>NAS 100</strong> 18,245.60 <b class="up">+0.62%</b></span>
+      <span class="tick"><strong>VOLATILITY 75</strong> 1,012.44 <b class="down">−0.31%</b></span>
+      <span class="tick"><strong>XAU/USD</strong> 2,164.31 <b class="up">+0.47%</b></span>
+      <span class="tick"><strong>BTC/USD</strong> 67,482.50 <b class="up">+1.24%</b></span>
+      <span class="tick"><strong>US 500</strong> 5,129.87 <b class="up">+0.28%</b></span>
+      <span class="tick"><strong>EUR/USD</strong> 1.08426 <b class="up">+0.18%</b></span>
+      <span class="tick"><strong>GBP/USD</strong> 1.27418 <b class="up">+0.09%</b></span>
+      <span class="tick"><strong>NAS 100</strong> 18,245.60 <b class="up">+0.62%</b></span>
+    </div></div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div>
+        <div class="brand">
+          <div class="brand-mark"><div><i data-lucide="activity" size="19"></i></div></div>
+          <div class="brand-text"><div class="brand-name">MarketPulse <span class="pro">PRO</span></div><small>INTELLIGENCE TERMINAL</small></div>
+        </div>
+        <p class="section-label">Espace de travail</p>
+        <nav class="nav">
+          <button class="active"><i data-lucide="layout-dashboard"></i><span>Vue d'ensemble</span></button>
+          <button><i data-lucide="chart-no-axes-combined"></i><span>Analyse des marchés</span></button>
+          <button><i data-lucide="candlestick-chart"></i><span>Forex & Indices</span></button>
+          <button><i data-lucide="zap"></i><span>Indices synthétiques</span></button>
+          <button><i data-lucide="bot"></i><span>Stratégies & Robots</span></button>
+        </nav>
+        <p class="section-label">Gestion</p>
+        <nav class="nav">
+          <button><i data-lucide="briefcase-business"></i><span>Portefeuille</span></button>
+          <button><i data-lucide="bell-ring"></i><span>Alertes</span></button>
+          <button id="sideBrokerBtn"><i data-lucide="plug-zap"></i><span>Connexions brokers</span></button>
+        </nav>
+      </div>
+      <div class="broker">
+        <div class="broker-head"><span>Compte Trading</span><span class="connected"><span></span>CONNECTÉ</span></div>
+        <p>Deriv • Compte démo<br>Solde : 10 245,80 USD</p>
+        <button id="manageBrokerBtn">Gérer les accès</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">Terminal multi-actifs · 24 février 2025</div>
+          <h1>Bonjour, Alexandre <span>— votre marché est en mouvement.</span></h1>
+        </div>
+        <div class="actions">
+          <button class="outline-btn"><i data-lucide="bell" size="15"></i> Alertes <b style="color:#38bdf8">3</b></button>
+          <button class="primary-btn" id="connectBtn"><i data-lucide="plug-zap" size="15"></i><span>Connecter un broker</span></button>
+        </div>
+      </header>
+
+      <section class="market-strip">
+        <article class="metric"><label>CAPITAL TOTAL</label><strong>10 245,80 $</strong><small class="up">↗ +2,84% aujourd'hui</small><i data-lucide="wallet"></i></article>
+        <article class="metric"><label>POSITIONS OUVERTES</label><strong>04</strong><small style="color:#aab7c8">Exposition : 18,5%</small><i data-lucide="layers-3"></i></article>
+        <article class="metric"><label>RÉSULTAT JOURNALIER</label><strong class="up">+284,16 $</strong><small class="up">↗ 3 positions gagnantes</small><i data-lucide="trending-up"></i></article>
+        <article class="metric"><label>INDICE DE RISQUE</label><strong style="color:#f6bd48">MODÉRÉ</strong><small style="color:#aab7c8">Score : 42 / 100</small><i data-lucide="shield-check"></i></article>
+      </section>
+
+      <section class="grid-main">
+        <article class="card chart-card">
+          <div class="card-title">
+            <div class="instrument">
+              <div class="instrument-icon"><i data-lucide="landmark" size="17"></i></div>
+              <div><h2>Volatility 75 Index</h2><p>SYNTHETIC INDEX · DERIV</p></div>
+            </div>
+            <div style="text-align:right"><div class="price">1 012.44</div><small class="mono up" style="font-size:10px">+8.76 &nbsp; +0.87%</small></div>
+          </div>
+          <div class="timeframes">
+            <button class="tf">1m</button><button class="tf">5m</button><button class="tf active">15m</button><button class="tf">1H</button><button class="tf">4H</button><button class="tf">1D</button>
+          </div>
+          <div class="chart-holder"><canvas id="marketChart"></canvas></div>
+        </article>
+
+        <article class="card signal-card">
+          <div class="card-title"><div><div class="eyebrow">Signal intelligent</div><h2 style="font-size:14px;margin:5px 0 0">V75 · Configuration actuelle</h2></div><i data-lucide="radar" color="#38bdf8" size="20"></i></div>
+          <div class="signal-status"><i data-lucide="circle-arrow-up" size="25"></i><div><b>ACHAT POTENTIEL</b><small>Confirmation attendue au-dessus de 1 014.20</small></div></div>
+          <div class="confidence"><div class="conf-row"><span>Confiance du signal</span><strong>78%</strong></div><div class="progress"><span></span></div></div>
+          <div class="signals">
+            <div class="signal-item"><span>RSI (14)</span><b class="positive">58.42 · HAUSSIER</b></div>
+            <div class="signal-item"><span>MACD</span><b class="positive">CROISEMENT +</b></div>
+            <div class="signal-item"><span>Bandes de Bollinger</span><b class="neutral">ZONE MÉDIANE</b></div>
+            <div class="signal-item"><span>Tendance EMA 50</span><b class="positive">AU-DESSUS</b></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="bottom-grid">
+        <article class="card algo-card">
+          <div class="algo-header">
+            <div class="algo-title"><div class="algo-icon"><i data-lucide="bot" size="18"></i></div><div><h2>Assistant de trading algorithmique</h2><p>Analyse les opportunités sur Forex, synthétiques et indices.</p></div></div>
+            <div class="switch-row"><b id="algoState">EN VEILLE</b><button class="switch" id="algoSwitch" aria-label="Activer l'assistant"><span></span></button></div>
+          </div>
+          <div class="algo-body">
+            <div class="algo-stat"><label>OPPORTUNITÉS SCANNÉES</label><strong>128 <span class="up" style="font-size:10px">+12</span></strong></div>
+            <div class="algo-stat"><label>SIGNAUX QUALIFIÉS</label><strong>07 <span style="color:#9babbe;font-size:10px">aujourd'hui</span></strong></div>
+            <div class="algo-stat"><label>PRÉCISION HISTORIQUE</label><strong class="up">74.8%</strong></div>
+          </div>
+        </article>
+
+        <article class="card indicators">
+          <h2>Indicateurs actifs</h2>
+          <div class="indicator-row"><div class="ind-left"><span class="indicator-dot" style="background:#38bdf8"></span><div><b>RSI Momentum</b><small>14 périodes</small></div></div><span class="tag bull">ACTIF</span></div>
+          <div class="indicator-row"><div class="ind-left"><span class="indicator-dot" style="background:#a855f7"></span><div><b>MACD Trend</b><small>12 · 26 · 9</small></div></div><span class="tag bull">ACTIF</span></div>
+          <div class="indicator-row"><div class="ind-left"><span class="indicator-dot" style="background:#f59e0b"></span><div><b>ATR Volatilité</b><small>14 périodes</small></div></div><span class="tag warn">SURVEILLER</span></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-layer" id="brokerModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div><h2 id="modalTitle">Connecter vos identifiants broker</h2><p>Centralisez vos comptes de trading pour analyser et suivre vos positions en un seul endroit.</p></div>
+        <button class="close" id="closeModal"><i data-lucide="x" size="17"></i></button>
+      </div>
+      <form id="brokerForm">
+        <div class="modal-body">
+          <div class="security"><i data-lucide="lock-keyhole"></i><span>Vos informations sont chiffrées et sécurisées. MarketPulse n'utilise jamais vos identifiants pour effectuer des retraits.</span></div>
+          <div class="broker-options">
+            <button type="button" class="broker-option selected">Deriv</button>
+            <button type="button" class="broker-option">MetaTrader 5</button>
+            <button type="button" class="broker-option">IC Markets</button>
+            <button type="button" class="broker-option">Autre broker</button>
+          </div>
+          <div class="form-grid">
+            <div class="field full"><label>BROKER SÉLECTIONNÉ</label><select id="brokerSelect"><option>Deriv</option><option>MetaTrader 5</option><option>IC Markets</option><option>Exness</option><option>Autre broker</option></select></div>
+            <div class="field"><label>IDENTIFIANT / NUMÉRO DE COMPTE</label><input required placeholder="Ex. CR1234567" type="text"></div>
+            <div class="field"><label>TYPE DE COMPTE</label><select><option>Compte démo</option><option>Compte réel</option></select></div>
+            <div class="field full"><label>CLÉ API OU MOT DE PASSE DE TRADING</label><input required placeholder="Saisissez vos identifiants sécurisés" type="password"></div>
+            <div class="field full"><label>SERVEUR (OPTIONNEL)</label><input placeholder="Ex. Deriv-Demo ou ICMarketsSC-Demo" type="text"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="outline-btn" type="button" id="cancelModal">Annuler</button>
+          <button class="primary-btn" type="submit"><i data-lucide="shield-check" size="15"></i> Vérifier et connecter</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><i data-lucide="check-circle-2"></i><span>Vos identifiants ont été enregistrés de façon sécurisée.</span></div>
+
+  <script>
+    lucide.createIcons();
+
+    const ctx = document.getElementById('marketChart');
+    const labels = ['09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15','11:30','11:45','12:00','12:15','12:30','12:45','13:00','13:15'];
+    const baseData = [987,991,985,994,998,994,1002,1005,1000,1008,1003,1009,1007,1015,1010,1017,1012,1012.44];
+    const chart = new Chart(ctx, {
+      type:'line',
+      data:{labels,datasets:[{data:baseData,borderColor:'#38bdf8',borderWidth:2,pointRadius:0,tension:.38,fill:true,backgroundColor:(context)=>{const g=context.chart.ctx.createLinearGradient(0,0,0,280);g.addColorStop(0,'rgba(56,189,248,.26)');g.addColorStop(1,'rgba(56,189,248,0)');return g;}}]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{display:false},tooltip:{backgroundColor:'#101b2c',borderColor:'rgba(56,189,248,.3)',borderWidth:1,titleColor:'#91a5bd',bodyColor:'#e8eefb',padding:10,displayColors:false,callbacks:{label:c=>' Prix : '+c.parsed.y.toFixed(2)}}},scales:{x:{grid:{display:false},border:{display:false},ticks:{color:'#718097',font:{family:'DM Mono',size:9},maxTicksLimit:7}},y:{position:'right',grid:{color:'rgba(148,163,184,.08)'},border:{display:false},ticks:{color:'#718097',font:{family:'DM Mono',size:9},padding:9}}}}
+    });
+
+    document.querySelectorAll('.tf').forEach((btn,index)=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tf').forEach(x=>x.classList.remove('active'));
+        btn.classList.add('active');
+        const variation = index * 2;
+        chart.data.datasets[0].data = baseData.map((v,i)=>v + Math.sin(i*.8+index)*variation);
+        chart.update();
+      });
+    });
+
+    document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+      btn.classList.add('active');
+    }));
+
+    const modal = document.getElementById('brokerModal');
+    const openModal = ()=>modal.classList.add('show');
+    const closeModal = ()=>modal.classList.remove('show');
+    document.getElementById('connectBtn').addEventListener('click',openModal);
+    document.getElementById('manageBrokerBtn').addEventListener('click',openModal);
+    document.getElementById('sideBrokerBtn').addEventListener('click',openModal);
+    document.getElementById('closeModal').addEventListener('click',closeModal);
+    document.getElementById('cancelModal').addEventListener('click',closeModal);
+    modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});
+
+    const brokerSelect=document.getElementById('brokerSelect');
+    document.querySelectorAll('.broker-option').forEach(option=>{
+      option.addEventListener('click',()=>{
+        document.querySelectorAll('.broker-option').forEach(x=>x.classList.remove('selected'));
+        option.classList.add('selected');
+        brokerSelect.value=option.textContent;
+      });
+    });
+    brokerSelect.addEventListener('change',()=>{
+      document.querySelectorAll('.broker-option').forEach(x=>x.classList.toggle('selected',x.textContent===brokerSelect.value));
+    });
+
+    document.getElementById('brokerForm').addEventListener('submit',e=>{
+      e.preventDefault(); closeModal();
+      const toast=document.getElementById('toast');toast.classList.add('show');
+      setTimeout(()=>toast.classList.remove('show'),3800);
+    });
+
+    document.getElementById('algoSwitch').addEventListener('click',function(){
+      this.classList.toggle('enabled');
+      const on=this.classList.contains('enabled');
+      document.getElementById('algoState').textContent=on?'ACTIF':'EN VEILLE';
+      document.getElementById('algoState').style.color=on?'#10b981':'#f59e0b';
+    });
+  </script>
+</body>
+</html>
